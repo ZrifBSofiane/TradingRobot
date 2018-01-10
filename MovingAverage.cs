@@ -4,7 +4,7 @@ using NQuotes;
 
 namespace MetaQuotesSample
 {
-   
+
     public class MovingAverage : MqlApi
     {
 
@@ -36,7 +36,7 @@ namespace MetaQuotesSample
                     if (OrderType() == OP_SELL) sells++;
                 }
             }
-            
+
             //---- return orders volume
             if (buys > 0) return (buys);
             return (-sells);
@@ -50,7 +50,7 @@ namespace MetaQuotesSample
             // history orders total
             int orders = OrdersHistoryTotal();
             // number of losses orders without a break
-            int losses = 0;                  
+            int losses = 0;
             //---- select lot size
             double lot = NormalizeDouble(AccountFreeMargin() * MaximumRisk / 1000.0, 1);
             //---- calcuulate number of losses orders without a break
@@ -60,7 +60,7 @@ namespace MetaQuotesSample
                 {
                     if (!OrderSelect(i, SELECT_BY_POS, MODE_HISTORY)) { Print("Error in history!"); break; }
                     if (OrderSymbol() != Symbol() || OrderType() > OP_SELL) continue;
-                    
+
                     if (OrderProfit() > 0) break;
                     if (OrderProfit() < 0) losses++;
                 }
@@ -78,7 +78,7 @@ namespace MetaQuotesSample
         {
             //---- go trading only for first tiks of new bar
             if (Volume[0] > 1) return;
-            
+
             //---- get Moving Average 
             double maH = iMA(symbol, 0, MovingPeriodHigh, MovingShift, MODE_SMA, PRICE_CLOSE, 0);
             double maL = iMA(symbol, 0, MovingPeriodLow, MovingShift, MODE_SMA, PRICE_CLOSE, 0);
@@ -90,15 +90,17 @@ namespace MetaQuotesSample
             if (maL < maH)
             {
                 double tp = NormalizeDouble(Ask - 0.06, Digits);
+                int ticket = OrderSend(Symbol(), OP_SELL, LotsOptimized(), Bid, 3, 0, tp, "", MAGICMA, DateTime.MinValue, Color.Blue);
+                if (OrderSelect(ticket, SELECT_BY_TICKET))
                 {
                     Console.WriteLine("Order commission : " + OrderCommission());
                 }
                 return;
             }
             //---- buy conditions
-            if (maL > maH )
+            if (maL > maH)
             {
-                
+
                 double tp = NormalizeDouble(Bid + 0.06, Digits);
                 currentlyTrading = true;
                 int ticket = OrderSend(Symbol(), OP_BUY, LotsOptimized(), Ask, 3, 0, tp, "", MAGICMA, DateTime.MinValue, Color.Blue);
@@ -112,40 +114,40 @@ namespace MetaQuotesSample
         //+------------------------------------------------------------------+
         //| Check for close order conditions                                 |
         //+------------------------------------------------------------------+
-      /*  void CheckForClose(string symbol)
-        {
-            if (currentlyTrading)
-            {
-                currentlyTrading = false;
+        /*  void CheckForClose(string symbol)
+          {
+              if (currentlyTrading)
+              {
+                  currentlyTrading = false;
 
 
 
-                //---- go trading only for first tiks of new bar
-                if (Volume[0] > 1) return;
-                //---- get Moving Average 
-                double maH = iMA(symbol, 0, MovingPeriodHigh, MovingShift, MODE_SMA, PRICE_CLOSE, 0);
-                double maL = iMA(symbol, 0, MovingPeriodLow, MovingShift, MODE_SMA, PRICE_CLOSE, 0);
+                  //---- go trading only for first tiks of new bar
+                  if (Volume[0] > 1) return;
+                  //---- get Moving Average 
+                  double maH = iMA(symbol, 0, MovingPeriodHigh, MovingShift, MODE_SMA, PRICE_CLOSE, 0);
+                  double maL = iMA(symbol, 0, MovingPeriodLow, MovingShift, MODE_SMA, PRICE_CLOSE, 0);
 
-                for (int i = 0; i < OrdersTotal(); i++)
-                {
-                    if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) break;
-                    if (OrderMagicNumber() != MAGICMA || OrderSymbol() != Symbol()) continue;
-                    //---- check order type 
-                    if (OrderType() == OP_SELL)
-                    {
-                        if (maL < maH) OrderClose(OrderTicket(), OrderLots(), Bid, 3, Color.White);
-                        break;
-                    }
-                    if (OrderType() == OP_BUY)
-                    {
-                        if (maL > maH) OrderClose(OrderTicket(), OrderLots(), Ask, 3, Color.White);
-                        break;
-                    }
-                }
-            }
-        }
-        
-    */
+                  for (int i = 0; i < OrdersTotal(); i++)
+                  {
+                      if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) break;
+                      if (OrderMagicNumber() != MAGICMA || OrderSymbol() != Symbol()) continue;
+                      //---- check order type 
+                      if (OrderType() == OP_SELL)
+                      {
+                          if (maL < maH) OrderClose(OrderTicket(), OrderLots(), Bid, 3, Color.White);
+                          break;
+                      }
+                      if (OrderType() == OP_BUY)
+                      {
+                          if (maL > maH) OrderClose(OrderTicket(), OrderLots(), Ask, 3, Color.White);
+                          break;
+                      }
+                  }
+              }
+          }
+
+      */
         //+------------------------------------------------------------------+
         //| Start function                                                   |
         //+------------------------------------------------------------------+
@@ -155,13 +157,14 @@ namespace MetaQuotesSample
             if (Bars < 100 || !IsTradeAllowed()) return 0;
 
 
-          //  Console.WriteLine("NEW CANDLE");
+            //  Console.WriteLine("NEW CANDLE");
 
 
             //---- calculate open orders by current symbol
             string symbol = Symbol();
-            if (CalculateCurrentOrders() == 0) CheckForOpen(symbol);
-           // else CheckForClose(symbol);
+            // if (CalculateCurrentOrders() == 0)
+            CheckForOpen(symbol);
+            // else CheckForClose(symbol);
 
             return 0;
         }
