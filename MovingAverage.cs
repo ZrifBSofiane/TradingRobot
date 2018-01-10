@@ -1,6 +1,7 @@
 ﻿using System;
 using Color = System.Drawing.Color;
 using NQuotes;
+using System.Collections.Generic;
 
 namespace MetaQuotesSample
 {
@@ -8,8 +9,12 @@ namespace MetaQuotesSample
     public class MovingAverage : MqlApi
     {
 
-        static bool currentlyTrading = false;
+       
 
+         List<String> smallPip = new List<String>()
+        {
+            "USDJPY"
+        };
 
 
         const int MAGICMA = 20050610;
@@ -84,29 +89,53 @@ namespace MetaQuotesSample
             double maL = iMA(symbol, 0, MovingPeriodLow, MovingShift, MODE_SMA, PRICE_CLOSE, 0);
 
 
+            //---- get spread 
+            double spread = NormalizeDouble(Ask - Bid, 1);
+
+            //---- Determine if the symbol have 0.001 or 0.0001 pip level
+            bool isSmallPip = false;
+            if (smallPip.Contains(Symbol())) isSmallPip = true;
+
+
             double minstoplevel = MarketInfo(Symbol(), MODE_STOPLEVEL);
-            Console.WriteLine("Min Stop level : " + minstoplevel);
+            
             //---- sell conditions
             if (maL < maH)
             {
-                double tp = NormalizeDouble(Ask - 0.06, Digits);
-                int ticket = OrderSend(Symbol(), OP_SELL, LotsOptimized(), Bid, 3, 0, tp, "", MAGICMA, DateTime.MinValue, Color.Blue);
+                Console.WriteLine("SELL");
+                double tp;
+                if (isSmallPip)
+                    tp = NormalizeDouble(Ask - spread - 0.01, Digits);
+                else
+                    tp = NormalizeDouble(Ask - spread - 0.0001, Digits);
+                double lot = LotsOptimized();
+                int ticket = OrderSend(Symbol(), OP_SELL, lot, Bid, 3, 0, tp, "", MAGICMA, DateTime.MinValue, Color.Blue);
+                if(ticket == -1)
+                {
+                    Console.WriteLine(GetLastError());
+                }
                 if (OrderSelect(ticket, SELECT_BY_TICKET))
                 {
-                    Console.WriteLine("Order commission : " + OrderCommission());
+                    Console.WriteLine("SELL " + Symbol() + " Lot : " + lot);
                 }
-                return;
+               
+
             }
             //---- buy conditions
             if (maL > maH)
             {
 
-                double tp = NormalizeDouble(Bid + 0.06, Digits);
-                currentlyTrading = true;
-                int ticket = OrderSend(Symbol(), OP_BUY, LotsOptimized(), Ask, 3, 0, tp, "", MAGICMA, DateTime.MinValue, Color.Blue);
+                double tp;
+                if (isSmallPip)
+                    tp = NormalizeDouble(Bid + spread + 0.01, Digits);
+                else
+                    tp = NormalizeDouble(Bid + spread + 0.0001, Digits);
+                
+                double lot = LotsOptimized();
+                int ticket = OrderSend(Symbol(), OP_BUY, lot, Ask, 3, 0, tp, "", MAGICMA, DateTime.MinValue, Color.Blue);
                 if (OrderSelect(ticket, SELECT_BY_TICKET))
                 {
-                    Console.WriteLine("Order commission : " + OrderCommission());
+                   // Console.WriteLine("BUY " + Symbol() + " Lot : " + lot);
                 }
             }
         }
