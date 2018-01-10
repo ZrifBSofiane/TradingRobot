@@ -1,0 +1,8 @@
+C:\Users\sofiane\AppData\Roaming\MetaQuotes\Terminal\BB190E062770E27C3E79391AB0D1A117\MQL4\Projects\nquotes\MovingAverageExpert\bin\Debug\MovingAverageExpert.dll
+C:\Users\sofiane\AppData\Roaming\MetaQuotes\Terminal\BB190E062770E27C3E79391AB0D1A117\MQL4\Projects\nquotes\MovingAverageExpert\bin\Debug\MovingAverageExpert.pdb
+C:\Users\sofiane\AppData\Roaming\MetaQuotes\Terminal\BB190E062770E27C3E79391AB0D1A117\MQL4\Projects\nquotes\MovingAverageExpert\bin\Debug\nquotes.dll
+C:\Users\sofiane\AppData\Roaming\MetaQuotes\Terminal\BB190E062770E27C3E79391AB0D1A117\MQL4\Projects\nquotes\MovingAverageExpert\bin\Debug\nquotes.xml
+C:\Users\sofiane\AppData\Roaming\MetaQuotes\Terminal\BB190E062770E27C3E79391AB0D1A117\MQL4\Projects\nquotes\MovingAverageExpert\obj\Debug\MovingAverageExpert.csprojResolveAssemblyReference.cache
+C:\Users\sofiane\AppData\Roaming\MetaQuotes\Terminal\BB190E062770E27C3E79391AB0D1A117\MQL4\Projects\nquotes\MovingAverageExpert\obj\Debug\MovingAverageExpert.csproj.CoreCompileInputs.cache
+C:\Users\sofiane\AppData\Roaming\MetaQuotes\Terminal\BB190E062770E27C3E79391AB0D1A117\MQL4\Projects\nquotes\MovingAverageExpert\obj\Debug\MovingAverageExpert.dll
+C:\Users\sofiane\AppData\Roaming\MetaQuotes\Terminal\BB190E062770E27C3E79391AB0D1A117\MQL4\Projects\nquotes\MovingAverageExpert\obj\Debug\MovingAverageExpert.pdb
