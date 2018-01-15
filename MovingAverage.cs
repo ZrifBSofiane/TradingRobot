@@ -21,9 +21,10 @@ namespace MetaQuotesSample
 
         double MaximumRisk = 0.02;
         double DecreaseFactor = 3;
-        int MovingPeriodHigh = 30;
-        int MovingPeriodLow = 15;
-        int MovingShift = 6;
+        int MovingPeriodHigh = 20;
+        int MovingPeriodLow = 5;
+        double smaValueCheck = 0.1;
+       
 
         //+------------------------------------------------------------------+
         //| Calculate open positions                                         |
@@ -85,38 +86,58 @@ namespace MetaQuotesSample
             if (Volume[0] > 1) return;
 
             //---- get Moving Average 
-            double maH = iMA(symbol, 0, MovingPeriodHigh, MovingShift, MODE_SMA, PRICE_CLOSE, 0);
-            double maL = iMA(symbol, 0, MovingPeriodLow, MovingShift, MODE_SMA, PRICE_CLOSE, 0);
+            double maH = iMA(symbol, 0, MovingPeriodHigh, 0, MODE_SMA, PRICE_CLOSE, 0);
+            double maL = iMA(symbol, 0, MovingPeriodLow, 0, MODE_SMA, PRICE_CLOSE, 0);
 
+            //---- get Previous Moving Average
+            double maHPrevious1 = iMA(symbol, 0, MovingPeriodHigh, 0, MODE_SMA, PRICE_CLOSE, 1);
+            double maLPrevious1 = iMA(symbol, 0, MovingPeriodLow, 0, MODE_SMA, PRICE_CLOSE, 1);
 
-            //---- get spread 
-            double spread = NormalizeDouble(Ask - Bid, 1);
-
-            //---- Determine if the symbol have 0.001 or 0.0001 pip level
-            bool isSmallPip = false;
-            if (smallPip.Contains(Symbol())) isSmallPip = true;
-
-
+            //---- compute the slope (coeff director)
+            double slopeSmaH = maH - maHPrevious1;
+            slopeSmaH *= 1000;
+            double slopeSmaL = maL - maLPrevious1;
+            slopeSmaL *= 1000;
+          /*  if(slopeSmaL > smaValueCheck)
+                //Console.WriteLine("AAAA " + TimeCurrent());
+            if (slopeSmaL < -smaValueCheck)
+               // Console.WriteLine("BBBB " + TimeCurrent());
+            if (slopeSmaH > smaValueCheck)
+               // Console.WriteLine("CCCC " + TimeCurrent());
+            if (slopeSmaH < -smaValueCheck)
+                //Console.WriteLine("DDDD " + TimeCurrent());
+            */
             double minstoplevel = MarketInfo(Symbol(), MODE_STOPLEVEL);
-            
+
+            double slopMean =(slopeSmaH + slopeSmaL)/2;
+
+            //Console.WriteLine("slopeSMAL " + slopeSmaL +" slopesmah " + slopeSmaH);
+
+
+
+            double smaResult = (((smaValueCheck - slopMean) * 100) - 10) * -1;
+       
+
+
+            if(smaResult > 15)
+                Console.WriteLine("BUY at Date : " + TimeCurrent() + " Result : " + smaResult);
+            if (smaResult < -15)
+                Console.WriteLine(" SELL at Date : " + TimeCurrent() + " Result : " + smaResult);
+
             //---- sell conditions
             if (maL < maH)
             {
-                Console.WriteLine("SELL");
-                double tp;
-                if (isSmallPip)
-                    tp = NormalizeDouble(Ask - spread - 0.01, Digits);
-                else
-                    tp = NormalizeDouble(Ask - spread - 0.0001, Digits);
+               // Console.WriteLine("SELL");
+               
                 double lot = LotsOptimized();
-                int ticket = OrderSend(Symbol(), OP_SELL, lot, Bid, 3, 0, tp, "", MAGICMA, DateTime.MinValue, Color.Blue);
+                int ticket = OrderSend(Symbol(), OP_SELL, lot, Bid, 3, 0, 0, "", MAGICMA, DateTime.MinValue, Color.Blue);
                 if(ticket == -1)
                 {
-                    Console.WriteLine(GetLastError());
+                    //Console.WriteLine(GetLastError());
                 }
                 if (OrderSelect(ticket, SELECT_BY_TICKET))
                 {
-                    Console.WriteLine("SELL " + Symbol() + " Lot : " + lot);
+                   // Console.WriteLine("SELL " + Symbol() + " Lot : " + lot);
                 }
                
 
@@ -124,15 +145,9 @@ namespace MetaQuotesSample
             //---- buy conditions
             if (maL > maH)
             {
-
-                double tp;
-                if (isSmallPip)
-                    tp = NormalizeDouble(Bid + spread + 0.01, Digits);
-                else
-                    tp = NormalizeDouble(Bid + spread + 0.0001, Digits);
-                
+               // Console.WriteLine("BUY");
                 double lot = LotsOptimized();
-                int ticket = OrderSend(Symbol(), OP_BUY, lot, Ask, 3, 0, tp, "", MAGICMA, DateTime.MinValue, Color.Blue);
+                int ticket = OrderSend(Symbol(), OP_BUY, lot, Ask, 3, 0, 0, "", MAGICMA, DateTime.MinValue, Color.Blue);
                 if (OrderSelect(ticket, SELECT_BY_TICKET))
                 {
                    // Console.WriteLine("BUY " + Symbol() + " Lot : " + lot);
@@ -143,19 +158,17 @@ namespace MetaQuotesSample
         //+------------------------------------------------------------------+
         //| Check for close order conditions                                 |
         //+------------------------------------------------------------------+
-        /*  void CheckForClose(string symbol)
+          void CheckForClose(string symbol)
           {
-              if (currentlyTrading)
-              {
-                  currentlyTrading = false;
+             
 
 
 
                   //---- go trading only for first tiks of new bar
                   if (Volume[0] > 1) return;
                   //---- get Moving Average 
-                  double maH = iMA(symbol, 0, MovingPeriodHigh, MovingShift, MODE_SMA, PRICE_CLOSE, 0);
-                  double maL = iMA(symbol, 0, MovingPeriodLow, MovingShift, MODE_SMA, PRICE_CLOSE, 0);
+                  double maH = iMA(symbol, 0, MovingPeriodHigh, 0, MODE_SMA, PRICE_CLOSE, 0);
+                  double maL = iMA(symbol, 0, MovingPeriodLow, 0, MODE_SMA, PRICE_CLOSE, 0);
 
                   for (int i = 0; i < OrdersTotal(); i++)
                   {
@@ -173,10 +186,10 @@ namespace MetaQuotesSample
                           break;
                       }
                   }
-              }
+              
           }
 
-      */
+      
         //+------------------------------------------------------------------+
         //| Start function                                                   |
         //+------------------------------------------------------------------+
@@ -191,7 +204,7 @@ namespace MetaQuotesSample
 
             //---- calculate open orders by current symbol
             string symbol = Symbol();
-            // if (CalculateCurrentOrders() == 0)
+            //if (CalculateCurrentOrders() <= 5)
             CheckForOpen(symbol);
             // else CheckForClose(symbol);
 
