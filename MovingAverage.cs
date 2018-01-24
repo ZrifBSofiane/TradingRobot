@@ -44,8 +44,8 @@ namespace MetaQuotesSample
             }
 
             //---- return orders volume
-            if (buys > 0) return (buys);
-            return (-sells);
+            
+            return (sells + buys);
         }
 
         //+------------------------------------------------------------------+
@@ -77,14 +77,13 @@ namespace MetaQuotesSample
             return (lot);
         }
 
-        //+------------------------------------------------------------------+
-        //| Check for open order conditions                                  |
-        //+------------------------------------------------------------------+
-        void CheckForOpen(string symbol)
-        {
-            //---- go trading only for first tiks of new bar
-            if (Volume[0] > 1) return;
 
+
+        //+------------------------------------------------------------------+
+        //| Check for SMA conditions                                         |
+        //+------------------------------------------------------------------+        
+        int CheckSmaCondition(string symbol)
+        {
             //---- get Moving Average 
             double maH = iMA(symbol, 0, MovingPeriodHigh, 0, MODE_SMA, PRICE_CLOSE, 0);
             double maL = iMA(symbol, 0, MovingPeriodLow, 0, MODE_SMA, PRICE_CLOSE, 0);
@@ -98,97 +97,204 @@ namespace MetaQuotesSample
             slopeSmaH *= 1000;
             double slopeSmaL = maL - maLPrevious1;
             slopeSmaL *= 1000;
-          /*  if(slopeSmaL > smaValueCheck)
-                //Console.WriteLine("AAAA " + TimeCurrent());
-            if (slopeSmaL < -smaValueCheck)
-               // Console.WriteLine("BBBB " + TimeCurrent());
-            if (slopeSmaH > smaValueCheck)
-               // Console.WriteLine("CCCC " + TimeCurrent());
-            if (slopeSmaH < -smaValueCheck)
-                //Console.WriteLine("DDDD " + TimeCurrent());
-            */
+          
             double minstoplevel = MarketInfo(Symbol(), MODE_STOPLEVEL);
 
-            double slopMean =(slopeSmaH + slopeSmaL)/2;
-
-            //Console.WriteLine("slopeSMAL " + slopeSmaL +" slopesmah " + slopeSmaH);
-
-
-
+            double slopMean = (slopeSmaH + slopeSmaL) / 2;
             double smaResult = (((smaValueCheck - slopMean) * 100) - 10) * -1;
-       
 
 
-            if(smaResult > 15)
-                Console.WriteLine("BUY at Date : " + TimeCurrent() + " Result : " + smaResult);
-            if (smaResult < -15)
-                Console.WriteLine(" SELL at Date : " + TimeCurrent() + " Result : " + smaResult);
+            int decision = 0;
+            if (smaResult > 5)
+                decision = 1;
+            if (smaResult < -5)
+                decision = -1;
+
+            
+
+
+            return decision;
+        }
+
+
+        int ChechForMACD(string symbol)
+        {
+            int makeOrder = 0;
+            //---- get MACD MAIN
+            double main = iMACD(symbol, 0, 5,22, 10, PRICE_CLOSE, MODE_MAIN, 0);
+            //double signal = iMACD(symbol, 0, 5,22, 10, PRICE_CLOSE, MODE_SIGNAL, 0);
+            //---- get previous MACD
+            double main1 = iMACD(symbol, 0, 5,22, 10, PRICE_CLOSE, MODE_MAIN, 1);
+            double main2 = iMACD(symbol, 0, 5,22, 10, PRICE_CLOSE, MODE_MAIN, 2);
+            double main3 = iMACD(symbol, 0, 5, 22, 10, PRICE_CLOSE, MODE_MAIN, 3);
+
+            if (main>0)
+            {
+                if(main1<0 && main2<0 && main3<0)
+                {
+                    makeOrder = 1;
+                }
+            }
+            if (main < 0)
+            {
+                if (main1 > 0 && main2 > 0 && main3>0)
+                {
+                    makeOrder = -1;
+                }
+            }
+            return makeOrder;
+        }
+
+        int CheckForSMA(string symbol)
+        {
+            int makeOrder = 0;
+            //---- get SMA
+            double smaLow = iMA(symbol, 0, 13, 0, MODE_SMMA, PRICE_CLOSE, 0);
+            double smaHigh = iMA(symbol, 0, 22, 0, MODE_SMMA, PRICE_CLOSE, 0);
+
+            if (smaHigh > smaLow)
+            {
+                makeOrder = -1;
+            }
+            if (smaHigh < smaLow)
+            {
+                makeOrder = 1;
+            }
+            return makeOrder;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+        //+------------------------------------------------------------------+
+        //| Check for open order conditions                                  |
+        //+------------------------------------------------------------------+
+        void CheckForOpen(string symbol)
+        {
+            //---- go trading only for first tiks of new bar
+            if (Volume[0] > 1) return;
+
+
+            //---- get Moving Average 
+         //   double maH = iMACD(symbol, 0, MovingPeriodHigh, MovingPeriodLow, 9, PRICE_CLOSE,MODE_MAIN,0);
+          //  double maL = iMACD(symbol, 0, MovingPeriodHigh, MovingPeriodLow, 9, PRICE_CLOSE, MODE_SIGNAL, 0);
+            int sellOrder = 0, buyOrder = 0;
+
+          //  Console.WriteLine(maH.ToString());
+            for (int i = 0; i < OrdersTotal(); i++)
+            {
+                if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) break;
+                if (OrderMagicNumber() != MAGICMA || OrderSymbol() != Symbol()) continue;
+                if (OrderType() == OP_SELL)
+                {
+                    sellOrder++;
+                    
+                }
+                if (OrderType() == OP_BUY)
+                {
+                    buyOrder++;
+                }
+
+
+            }
 
             //---- sell conditions
-            if (maL < maH)
+            int macd = ChechForMACD(symbol);
+            int sma = CheckForSMA(symbol);
+            if (macd == -1 && sma == -1 )
             {
-               // Console.WriteLine("SELL");
-               
                 double lot = LotsOptimized();
-                int ticket = OrderSend(Symbol(), OP_SELL, lot, Bid, 3, 0, 0, "", MAGICMA, DateTime.MinValue, Color.Blue);
-                if(ticket == -1)
-                {
-                    //Console.WriteLine(GetLastError());
-                }
-                if (OrderSelect(ticket, SELECT_BY_TICKET))
-                {
-                   // Console.WriteLine("SELL " + Symbol() + " Lot : " + lot);
-                }
-               
+               // if (sellOrder == 0)
+                    OrderSend(Symbol(), OP_SELL, lot, Bid, 3, Ask + 0.00065, 1.20603, "", MAGICMA, DateTime.MinValue, Color.Green);
 
+                /*   double lot = LotsOptimized();
+                   int ticket = OrderSend(Symbol(), OP_SELL, lot, Bid, 3, Ask + 0.0020, Ask - 0.0002, "", MAGICMA, DateTime.MinValue, Color.Green);
+                   if(ticket == -1)
+                   {
+                       //Console.WriteLine(GetLastError());
+                   }
+                   if (OrderSelect(ticket, SELECT_BY_TICKET))
+                   {
+                      // Console.WriteLine("SELL " + Symbol() + " Lot : " + lot);
+                   }
+                   */
             }
             //---- buy conditions
-            if (maL > maH)
+            if (macd == 1 && sma == 1)
             {
-               // Console.WriteLine("BUY");
                 double lot = LotsOptimized();
-                int ticket = OrderSend(Symbol(), OP_BUY, lot, Ask, 3, 0, 0, "", MAGICMA, DateTime.MinValue, Color.Blue);
-                if (OrderSelect(ticket, SELECT_BY_TICKET))
-                {
-                   // Console.WriteLine("BUY " + Symbol() + " Lot : " + lot);
-                }
+                //if (buyOrder == 0)
+                    OrderSend(Symbol(), OP_BUY, lot, Ask, 3, Bid - 0.00065, 1.20603, "", MAGICMA, DateTime.MinValue, Color.Red);
+
+                /* // Console.WriteLine("BUY");
+                 double lot = LotsOptimized();
+                 int ticket = OrderSend(Symbol(), OP_BUY, lot, Ask, 3, Bid - 0.00020, Bid + 0.0002, "", MAGICMA, DateTime.MinValue, Color.Red);
+                 if (OrderSelect(ticket, SELECT_BY_TICKET))
+                 {
+                    // Console.WriteLine("BUY " + Symbol() + " Lot : " + lot);
+                 }
+                 */
             }
+            
         }
 
         //+------------------------------------------------------------------+
         //| Check for close order conditions                                 |
         //+------------------------------------------------------------------+
-          void CheckForClose(string symbol)
+       /*   void CheckForClose(string symbol)
           {
-             
 
 
-
-                  //---- go trading only for first tiks of new bar
-                  if (Volume[0] > 1) return;
-                  //---- get Moving Average 
-                  double maH = iMA(symbol, 0, MovingPeriodHigh, 0, MODE_SMA, PRICE_CLOSE, 0);
-                  double maL = iMA(symbol, 0, MovingPeriodLow, 0, MODE_SMA, PRICE_CLOSE, 0);
-
+            Console.WriteLine("CLOOOOOSE");
+            //---- get Moving Average 
+           // double maH = iMACD(symbol, 0, MovingPeriodHigh, MovingPeriodLow, 9, PRICE_CLOSE, MODE_MAIN, 0);
+           // double maL = iMACD(symbol, 0, MovingPeriodHigh, MovingPeriodLow, 9, PRICE_CLOSE, MODE_SIGNAL, 0);
+           
+            //---- go trading only for first tiks of new bar
+            if (Volume[0] > 1) return;
                   for (int i = 0; i < OrdersTotal(); i++)
                   {
                       if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) break;
                       if (OrderMagicNumber() != MAGICMA || OrderSymbol() != Symbol()) continue;
-                      //---- check order type 
-                      if (OrderType() == OP_SELL)
+                      if (maL < maH)
                       {
-                          if (maL < maH) OrderClose(OrderTicket(), OrderLots(), Bid, 3, Color.White);
-                          break;
-                      }
-                      if (OrderType() == OP_BUY)
-                      {
-                          if (maL > maH) OrderClose(OrderTicket(), OrderLots(), Ask, 3, Color.White);
-                          break;
-                      }
-                  }
-              
-          }
+                            if (OrderType() == OP_SELL)
+                            {
+                                OrderClose(OrderTicket(), OrderLots(), Bid, 3, Color.White);
+                                break;
+                            }
+                            if (OrderType() == OP_BUY)
+                            {
+                                OrderClose(OrderTicket(), OrderLots(), Ask, 3, Color.White);
+                                break;
+                            }
 
+                      }
+                        if (maL > maH)
+                        {
+                            if (OrderType() == OP_SELL)
+                            {
+                                OrderClose(OrderTicket(), OrderLots(), Bid, 3, Color.White);
+                                break;
+                            }
+                            if (OrderType() == OP_BUY)
+                            {
+                                OrderClose(OrderTicket(), OrderLots(), Ask, 3, Color.White);
+                                break;
+                            }
+
+                        }
+            } 
+          }
+          */
       
         //+------------------------------------------------------------------+
         //| Start function                                                   |
@@ -204,9 +310,15 @@ namespace MetaQuotesSample
 
             //---- calculate open orders by current symbol
             string symbol = Symbol();
-            //if (CalculateCurrentOrders() <= 5)
-            CheckForOpen(symbol);
-            // else CheckForClose(symbol);
+            double cal = CalculateCurrentOrders();
+            Console.WriteLine("ORDER = " + cal);
+           
+                CheckForOpen(symbol);
+           
+              //  Console.WriteLine("end");
+               // CheckForClose(symbol);
+
+
 
             return 0;
         }
