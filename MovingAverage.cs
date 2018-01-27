@@ -18,13 +18,54 @@ namespace MetaQuotesSample
 
 
         const int MAGICMA = 20050610;
-
+        const double maxAbsoluteMACD = 0.000004;
         double MaximumRisk = 0.02;
         double DecreaseFactor = 3;
         int MovingPeriodHigh = 20;
         int MovingPeriodLow = 5;
         double smaValueCheck = 0.1;
+        const double risk = 0.5 / 100;
+
+
+
+
+        //+------------------------------------------------------------------+
+        //| Calculate TakeProfit                                             |
+        //+------------------------------------------------------------------+
+        Dictionary<String,Double> CalculateTakeProfit(String symbol)
+        {
+            //---- get ATR 
+            double atr = iATR(symbol, 0, 20, 0);
+            double takeProfit = 0;
+            Dictionary<String, Double> result =  new Dictionary<string, double>();
+            result.Add("valueATR", atr);
+            if (atr >= 0.00032)
+            {
+                takeProfit = 2 * atr * 10;
+                result.Add("valueTP", takeProfit);
+                result.Add("level", 3);
+            }  
+            if (atr > 0.00022 && atr < 0.00032)
+            {
+                takeProfit = 1.5 * atr * 10;
+                result.Add("valueTP", takeProfit);
+                result.Add("level", 2);
+            }
+            if (atr <= 0.00022)
+            {
+                takeProfit = atr * 10;
+                result.Add("valueTP", takeProfit);
+                result.Add("level", 1);
+            }
+
+            return result;
+        }
+
+
+
+
        
+
 
         //+------------------------------------------------------------------+
         //| Calculate open positions                                         |
@@ -45,7 +86,7 @@ namespace MetaQuotesSample
 
             //---- return orders volume
             
-            return (sells + buys);
+            return (sells + buys); 
         }
 
         //+------------------------------------------------------------------+
@@ -128,16 +169,16 @@ namespace MetaQuotesSample
             double main2 = iMACD(symbol, 0, 5,22, 10, PRICE_CLOSE, MODE_MAIN, 2);
             double main3 = iMACD(symbol, 0, 5, 22, 10, PRICE_CLOSE, MODE_MAIN, 3);
 
-            if (main>0)
+            if (main> maxAbsoluteMACD )
             {
-                if(main1<0 && main2<0 && main3<0)
+                if(main1< -maxAbsoluteMACD && main2< -maxAbsoluteMACD && main3<-maxAbsoluteMACD)
                 {
                     makeOrder = 1;
                 }
             }
-            if (main < 0)
+            if (main < -maxAbsoluteMACD)
             {
-                if (main1 > 0 && main2 > 0 && main3>0)
+                if (main1 > maxAbsoluteMACD && main2 > maxAbsoluteMACD && main3>maxAbsoluteMACD)
                 {
                     makeOrder = -1;
                 }
@@ -179,6 +220,41 @@ namespace MetaQuotesSample
         //+------------------------------------------------------------------+
         void CheckForOpen(string symbol)
         {
+
+
+        /*    //---- check if too long we close the trade only if benefit
+            for (int i = 0; i < OrdersTotal(); i++)
+            {
+                if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) break;
+                if (OrderSymbol() == Symbol() && OrderMagicNumber() == MAGICMA)
+                {
+                    DateTime now = TimeCurrent();
+                    DateTime tradeTime = OrderOpenTime();
+
+                    if(now - tradeTime > new TimeSpan(0,5,0))
+                    {
+                        if(OrderProfit() > 0)
+                        {
+                            if(OrderType() == OP_BUY)
+                            {
+                                OrderClose(OrderTicket(), OrderLots(), Bid, 3);
+                            }
+                            if (OrderType() == OP_SELL)
+                            {
+                                OrderClose(OrderTicket(), OrderLots(), Ask, 3);
+                            }
+
+                        }
+                    }
+                }
+            }*/
+
+
+
+
+
+
+
             //---- go trading only for first tiks of new bar
             if (Volume[0] > 1) return;
 
@@ -212,8 +288,14 @@ namespace MetaQuotesSample
             if (macd == -1 && sma == -1 )
             {
                 double lot = LotsOptimized();
-               // if (sellOrder == 0)
-                    OrderSend(Symbol(), OP_SELL, lot, Bid, 3, Ask + 0.00065, 1.20603, "", MAGICMA, DateTime.MinValue, Color.Green);
+                // if (sellOrder == 0)
+                Dictionary<String,double> tpResult = CalculateTakeProfit(symbol);
+                double tp = tpResult["valueTP"];
+                double atr = tpResult["valueATR"] * 10;
+                double sl2 = AccountBalance() * risk / (lot * 10) / 10000;
+                double valuePip = 0.0001 * lot * 100000;
+                Console.WriteLine("Sl : " + sl2);
+                OrderSend(Symbol(), OP_SELL, lot, Bid, 3, Ask + sl2, Ask - tp, "", MAGICMA, DateTime.MinValue, Color.Green);
 
                 /*   double lot = LotsOptimized();
                    int ticket = OrderSend(Symbol(), OP_SELL, lot, Bid, 3, Ask + 0.0020, Ask - 0.0002, "", MAGICMA, DateTime.MinValue, Color.Green);
@@ -232,16 +314,21 @@ namespace MetaQuotesSample
             {
                 double lot = LotsOptimized();
                 //if (buyOrder == 0)
-                    OrderSend(Symbol(), OP_BUY, lot, Ask, 3, Bid - 0.00065, 1.20603, "", MAGICMA, DateTime.MinValue, Color.Red);
+                Dictionary<String, double> tpResult = CalculateTakeProfit(symbol);
+                double tp = tpResult["valueTP"];
+                double atr = tpResult["valueATR"] * 10;
+                double sl2 = AccountBalance() * risk / (lot * 10) / 10000;
+                Console.WriteLine("Sl : " + sl2);
+                int ticket =  OrderSend(Symbol(), OP_BUY, lot, Ask, 3, Bid -  sl2, Bid + tp, "", MAGICMA, DateTime.MinValue, Color.Red);
 
-                /* // Console.WriteLine("BUY");
-                 double lot = LotsOptimized();
-                 int ticket = OrderSend(Symbol(), OP_BUY, lot, Ask, 3, Bid - 0.00020, Bid + 0.0002, "", MAGICMA, DateTime.MinValue, Color.Red);
+                 // Console.WriteLine("BUY");
+                 //double lot = LotsOptimized();
+                // int ticket = OrderSend(Symbol(), OP_BUY, lot, Ask, 3, Bid - 0.00020, Bid + 0.0002, "", MAGICMA, DateTime.MinValue, Color.Red);
                  if (OrderSelect(ticket, SELECT_BY_TICKET))
                  {
-                    // Console.WriteLine("BUY " + Symbol() + " Lot : " + lot);
+                     Console.WriteLine("BUY " + Symbol() + " Lot : " + lot + " Price : " +   OrderOpenPrice()  +" TP : " + tp) ;
                  }
-                 */
+                 
             }
             
         }
@@ -311,7 +398,7 @@ namespace MetaQuotesSample
             //---- calculate open orders by current symbol
             string symbol = Symbol();
             double cal = CalculateCurrentOrders();
-            Console.WriteLine("ORDER = " + cal);
+            //Console.WriteLine("ORDER = " + cal);
            
                 CheckForOpen(symbol);
            

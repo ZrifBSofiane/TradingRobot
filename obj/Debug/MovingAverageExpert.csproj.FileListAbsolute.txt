@@ -8,8 +8,7 @@ C:\Users\sofiane\AppData\Roaming\MetaQuotes\Terminal\BB190E062770E27C3E79391AB0D
 C:\Users\sofiane\AppData\Roaming\MetaQuotes\Terminal\BB190E062770E27C3E79391AB0D1A117\MQL4\Projects\nquotes\MovingAverageExpert\obj\Debug\MovingAverageExpert.pdb
 C:\Users\sofiane\Desktop\Nouveau dossier\TradingRobot\bin\Debug\MovingAverageExpert.dll
 C:\Users\sofiane\Desktop\Nouveau dossier\TradingRobot\bin\Debug\MovingAverageExpert.pdb
-C:\Users\sofiane\Desktop\Nouveau dossier\TradingRobot\bin\Debug\nquotes.xml
-C:\Users\sofiane\Desktop\Nouveau dossier\TradingRobot\obj\Debug\MovingAverageExpert.csprojResolveAssemblyReference.cache
 C:\Users\sofiane\Desktop\Nouveau dossier\TradingRobot\obj\Debug\MovingAverageExpert.csproj.CoreCompileInputs.cache
 C:\Users\sofiane\Desktop\Nouveau dossier\TradingRobot\obj\Debug\MovingAverageExpert.dll
 C:\Users\sofiane\Desktop\Nouveau dossier\TradingRobot\obj\Debug\MovingAverageExpert.pdb
+C:\Users\sofiane\Desktop\Nouveau dossier\TradingRobot\obj\Debug\MovingAverageExpert.csprojResolveAssemblyReference.cache
