@@ -204,7 +204,59 @@ namespace MetaQuotesSample
             return makeOrder;
         }
 
+        void ChangeTrailingStop()
+        {
+            
+            int trailingStop = 200;
+            for (int i = 0; i < OrdersTotal(); i++)
+            {
+                if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) break;
+                if (OrderSymbol() == Symbol() && OrderMagicNumber() == MAGICMA)
+                {
+                    if (OrderType() == OP_BUY)
+                    {
+                        
+                        if(trailingStop>0)
+                        {
+                            if(Bid - OrderOpenPrice() > Point * trailingStop)
+                            {
+                                if(OrderStopLoss() < Bid-Point*trailingStop)
+                                {
+                                    double before = OrderStopLoss();
+                                    bool result = OrderModify(OrderTicket(), OrderOpenPrice(),NormalizeDouble(Bid-Point*trailingStop,Digits),OrderTakeProfit(),OrderExpiration());
+                                    double after = OrderStopLoss();
+                                    if (!result)
+                                        Console.WriteLine(GetLastError());
+                                    else
+                                        Console.WriteLine(" BUY trailing stop  before : " + before + " after : " + after);
+                                }
+                            }
+                        }
+                        
 
+                    }
+                    if (OrderType() == OP_SELL)
+                    {
+                        if (trailingStop > 0)
+                        {
+                            if (OrderOpenPrice() - Ask > Point * trailingStop)
+                            {
+                                if (OrderStopLoss() > Ask - Point * trailingStop )
+                                {
+                                    double before = OrderStopLoss();
+                                    bool result = OrderModify(OrderTicket(), OrderOpenPrice(), NormalizeDouble(Ask + Point * trailingStop, Digits), OrderTakeProfit(), OrderExpiration());
+                                    double after = OrderStopLoss();
+                                    if (!result)
+                                        Console.WriteLine(GetLastError());
+                                    else
+                                        Console.WriteLine(" SELL trailing stop  before : " + before + " after : "+ after);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
 
 
@@ -220,67 +272,8 @@ namespace MetaQuotesSample
         //+------------------------------------------------------------------+
         void CheckForOpen(string symbol)
         {
-
-
-        /*    //---- check if too long we close the trade only if benefit
-            for (int i = 0; i < OrdersTotal(); i++)
-            {
-                if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) break;
-                if (OrderSymbol() == Symbol() && OrderMagicNumber() == MAGICMA)
-                {
-                    DateTime now = TimeCurrent();
-                    DateTime tradeTime = OrderOpenTime();
-
-                    if(now - tradeTime > new TimeSpan(0,5,0))
-                    {
-                        if(OrderProfit() > 0)
-                        {
-                            if(OrderType() == OP_BUY)
-                            {
-                                OrderClose(OrderTicket(), OrderLots(), Bid, 3);
-                            }
-                            if (OrderType() == OP_SELL)
-                            {
-                                OrderClose(OrderTicket(), OrderLots(), Ask, 3);
-                            }
-
-                        }
-                    }
-                }
-            }*/
-
-
-
-
-
-
-
-            //---- go trading only for first tiks of new bar
+            ChangeTrailingStop();
             if (Volume[0] > 1) return;
-
-
-            //---- get Moving Average 
-         //   double maH = iMACD(symbol, 0, MovingPeriodHigh, MovingPeriodLow, 9, PRICE_CLOSE,MODE_MAIN,0);
-          //  double maL = iMACD(symbol, 0, MovingPeriodHigh, MovingPeriodLow, 9, PRICE_CLOSE, MODE_SIGNAL, 0);
-            int sellOrder = 0, buyOrder = 0;
-
-          //  Console.WriteLine(maH.ToString());
-            for (int i = 0; i < OrdersTotal(); i++)
-            {
-                if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) break;
-                if (OrderMagicNumber() != MAGICMA || OrderSymbol() != Symbol()) continue;
-                if (OrderType() == OP_SELL)
-                {
-                    sellOrder++;
-                    
-                }
-                if (OrderType() == OP_BUY)
-                {
-                    buyOrder++;
-                }
-
-
-            }
 
             //---- sell conditions
             int macd = ChechForMACD(symbol);
@@ -288,42 +281,22 @@ namespace MetaQuotesSample
             if (macd == -1 && sma == -1 )
             {
                 double lot = LotsOptimized();
-                // if (sellOrder == 0)
                 Dictionary<String,double> tpResult = CalculateTakeProfit(symbol);
                 double tp = tpResult["valueTP"];
-                double atr = tpResult["valueATR"] * 10;
                 double sl2 = AccountBalance() * risk / (lot * 10) / 10000;
-                double valuePip = 0.0001 * lot * 100000;
-                Console.WriteLine("Sl : " + sl2);
                 OrderSend(Symbol(), OP_SELL, lot, Bid, 3, Ask + sl2, Ask - tp, "", MAGICMA, DateTime.MinValue, Color.Green);
 
-                /*   double lot = LotsOptimized();
-                   int ticket = OrderSend(Symbol(), OP_SELL, lot, Bid, 3, Ask + 0.0020, Ask - 0.0002, "", MAGICMA, DateTime.MinValue, Color.Green);
-                   if(ticket == -1)
-                   {
-                       //Console.WriteLine(GetLastError());
-                   }
-                   if (OrderSelect(ticket, SELECT_BY_TICKET))
-                   {
-                      // Console.WriteLine("SELL " + Symbol() + " Lot : " + lot);
-                   }
-                   */
             }
             //---- buy conditions
             if (macd == 1 && sma == 1)
             {
                 double lot = LotsOptimized();
-                //if (buyOrder == 0)
+                //
                 Dictionary<String, double> tpResult = CalculateTakeProfit(symbol);
                 double tp = tpResult["valueTP"];
-                double atr = tpResult["valueATR"] * 10;
                 double sl2 = AccountBalance() * risk / (lot * 10) / 10000;
-                Console.WriteLine("Sl : " + sl2);
                 int ticket =  OrderSend(Symbol(), OP_BUY, lot, Ask, 3, Bid -  sl2, Bid + tp, "", MAGICMA, DateTime.MinValue, Color.Red);
 
-                 // Console.WriteLine("BUY");
-                 //double lot = LotsOptimized();
-                // int ticket = OrderSend(Symbol(), OP_BUY, lot, Ask, 3, Bid - 0.00020, Bid + 0.0002, "", MAGICMA, DateTime.MinValue, Color.Red);
                  if (OrderSelect(ticket, SELECT_BY_TICKET))
                  {
                      Console.WriteLine("BUY " + Symbol() + " Lot : " + lot + " Price : " +   OrderOpenPrice()  +" TP : " + tp) ;
@@ -333,55 +306,7 @@ namespace MetaQuotesSample
             
         }
 
-        //+------------------------------------------------------------------+
-        //| Check for close order conditions                                 |
-        //+------------------------------------------------------------------+
-       /*   void CheckForClose(string symbol)
-          {
-
-
-            Console.WriteLine("CLOOOOOSE");
-            //---- get Moving Average 
-           // double maH = iMACD(symbol, 0, MovingPeriodHigh, MovingPeriodLow, 9, PRICE_CLOSE, MODE_MAIN, 0);
-           // double maL = iMACD(symbol, 0, MovingPeriodHigh, MovingPeriodLow, 9, PRICE_CLOSE, MODE_SIGNAL, 0);
-           
-            //---- go trading only for first tiks of new bar
-            if (Volume[0] > 1) return;
-                  for (int i = 0; i < OrdersTotal(); i++)
-                  {
-                      if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) break;
-                      if (OrderMagicNumber() != MAGICMA || OrderSymbol() != Symbol()) continue;
-                      if (maL < maH)
-                      {
-                            if (OrderType() == OP_SELL)
-                            {
-                                OrderClose(OrderTicket(), OrderLots(), Bid, 3, Color.White);
-                                break;
-                            }
-                            if (OrderType() == OP_BUY)
-                            {
-                                OrderClose(OrderTicket(), OrderLots(), Ask, 3, Color.White);
-                                break;
-                            }
-
-                      }
-                        if (maL > maH)
-                        {
-                            if (OrderType() == OP_SELL)
-                            {
-                                OrderClose(OrderTicket(), OrderLots(), Bid, 3, Color.White);
-                                break;
-                            }
-                            if (OrderType() == OP_BUY)
-                            {
-                                OrderClose(OrderTicket(), OrderLots(), Ask, 3, Color.White);
-                                break;
-                            }
-
-                        }
-            } 
-          }
-          */
+       
       
         //+------------------------------------------------------------------+
         //| Start function                                                   |
@@ -402,7 +327,7 @@ namespace MetaQuotesSample
            
                 CheckForOpen(symbol);
            
-              //  Console.WriteLine("end");
+                //Console.WriteLine("end  " + Point);
                // CheckForClose(symbol);
 
 
