@@ -169,7 +169,7 @@ namespace MetaQuotesSample
             double main2 = iMACD(symbol, 0, 5,22, 10, PRICE_CLOSE, MODE_MAIN, 2);
             double main3 = iMACD(symbol, 0, 5, 22, 10, PRICE_CLOSE, MODE_MAIN, 3);
 
-            if (main> maxAbsoluteMACD )
+            if (main > maxAbsoluteMACD )
             {
                 if(main1< -maxAbsoluteMACD && main2< -maxAbsoluteMACD && main3<-maxAbsoluteMACD)
                 {
@@ -190,7 +190,7 @@ namespace MetaQuotesSample
         {
             int makeOrder = 0;
             //---- get SMA
-            double smaLow = iMA(symbol, 0, 13, 0, MODE_SMMA, PRICE_CLOSE, 0);
+            double smaLow = iMA(symbol, 0, 5, 0, MODE_SMMA, PRICE_CLOSE, 0);
             double smaHigh = iMA(symbol, 0, 22, 0, MODE_SMMA, PRICE_CLOSE, 0);
 
             if (smaHigh > smaLow)
@@ -207,7 +207,7 @@ namespace MetaQuotesSample
         void ChangeTrailingStop()
         {
             
-            int trailingStop = 200;
+            int trailingStop = 70;
             for (int i = 0; i < OrdersTotal(); i++)
             {
                 if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) break;
@@ -313,6 +313,10 @@ namespace MetaQuotesSample
         //+------------------------------------------------------------------+
         public override int start()
         {
+            //DataBase db = new DataBase();
+
+
+
             //---- check for history and trading
             if (Bars < 100 || !IsTradeAllowed()) return 0;
 

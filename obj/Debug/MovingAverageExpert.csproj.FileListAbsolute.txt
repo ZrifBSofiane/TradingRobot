@@ -12,3 +12,4 @@ C:\Users\sofiane\Desktop\Nouveau dossier\TradingRobot\obj\Debug\MovingAverageExp
 C:\Users\sofiane\Desktop\Nouveau dossier\TradingRobot\obj\Debug\MovingAverageExpert.dll
 C:\Users\sofiane\Desktop\Nouveau dossier\TradingRobot\obj\Debug\MovingAverageExpert.pdb
 C:\Users\sofiane\Desktop\Nouveau dossier\TradingRobot\obj\Debug\MovingAverageExpert.csprojResolveAssemblyReference.cache
+C:\Users\sofiane\Desktop\Nouveau dossier\TradingRobot\bin\Debug\MovingAverageExpert.dll.config
