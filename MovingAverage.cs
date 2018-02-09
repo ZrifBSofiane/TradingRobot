@@ -24,7 +24,7 @@ namespace MetaQuotesSample
         int MovingPeriodHigh = 20;
         int MovingPeriodLow = 5;
         double smaValueCheck = 0.1;
-        const double risk = 0.5 / 100;
+        const double risk = 0.25 / 100;
 
 
 
@@ -118,96 +118,48 @@ namespace MetaQuotesSample
             return (lot);
         }
 
-
-
-        //+------------------------------------------------------------------+
-        //| Check for SMA conditions                                         |
-        //+------------------------------------------------------------------+        
-        int CheckSmaCondition(string symbol)
+        // 0: decision, 1: SMA10, 2: SMA20, 3: SMA65
+        List<double> CheckForSMA(string symbol)
         {
-            //---- get Moving Average 
-            double maH = iMA(symbol, 0, MovingPeriodHigh, 0, MODE_SMA, PRICE_CLOSE, 0);
-            double maL = iMA(symbol, 0, MovingPeriodLow, 0, MODE_SMA, PRICE_CLOSE, 0);
 
-            //---- get Previous Moving Average
-            double maHPrevious1 = iMA(symbol, 0, MovingPeriodHigh, 0, MODE_SMA, PRICE_CLOSE, 1);
-            double maLPrevious1 = iMA(symbol, 0, MovingPeriodLow, 0, MODE_SMA, PRICE_CLOSE, 1);
-
-            //---- compute the slope (coeff director)
-            double slopeSmaH = maH - maHPrevious1;
-            slopeSmaH *= 1000;
-            double slopeSmaL = maL - maLPrevious1;
-            slopeSmaL *= 1000;
-          
-            double minstoplevel = MarketInfo(Symbol(), MODE_STOPLEVEL);
-
-            double slopMean = (slopeSmaH + slopeSmaL) / 2;
-            double smaResult = (((smaValueCheck - slopMean) * 100) - 10) * -1;
-
-
-            int decision = 0;
-            if (smaResult > 5)
-                decision = 1;
-            if (smaResult < -5)
-                decision = -1;
-
-            
-
-
-            return decision;
-        }
-
-
-        int ChechForMACD(string symbol)
-        {
-            int makeOrder = 0;
-            //---- get MACD MAIN
-            double main = iMACD(symbol, 0, 5,22, 10, PRICE_CLOSE, MODE_MAIN, 0);
-            //double signal = iMACD(symbol, 0, 5,22, 10, PRICE_CLOSE, MODE_SIGNAL, 0);
-            //---- get previous MACD
-            double main1 = iMACD(symbol, 0, 5,22, 10, PRICE_CLOSE, MODE_MAIN, 1);
-            double main2 = iMACD(symbol, 0, 5,22, 10, PRICE_CLOSE, MODE_MAIN, 2);
-            double main3 = iMACD(symbol, 0, 5, 22, 10, PRICE_CLOSE, MODE_MAIN, 3);
-
-            if (main > maxAbsoluteMACD )
-            {
-                if(main1< -maxAbsoluteMACD && main2< -maxAbsoluteMACD && main3<-maxAbsoluteMACD)
-                {
-                    makeOrder = 1;
-                }
-            }
-            if (main < -maxAbsoluteMACD)
-            {
-                if (main1 > maxAbsoluteMACD && main2 > maxAbsoluteMACD && main3>maxAbsoluteMACD)
-                {
-                    makeOrder = -1;
-                }
-            }
-            return makeOrder;
-        }
-
-        int CheckForSMA(string symbol)
-        {
-            int makeOrder = 0;
+            List<double> result = new List<double>();
             //---- get SMA
-            double smaLow = iMA(symbol, 0, 5, 0, MODE_SMMA, PRICE_CLOSE, 0);
-            double smaHigh = iMA(symbol, 0, 22, 0, MODE_SMMA, PRICE_CLOSE, 0);
+            double sma10 = iMA(symbol, 0, 10, 0, MODE_SMMA, PRICE_CLOSE, 0);
+            double sma20 = iMA(symbol, 0, 20, 0, MODE_SMMA, PRICE_CLOSE, 0);
+            double sma65 = iMA(symbol, 0, 65, 0, MODE_SMMA, PRICE_CLOSE, 0);
 
-            if (smaHigh > smaLow)
-            {
-                makeOrder = -1;
-            }
-            if (smaHigh < smaLow)
-            {
-                makeOrder = 1;
-            }
-            return makeOrder;
+            //---- get Previous SMA
+            double pSma10 = iMA(symbol, 0, 10, 0, MODE_SMMA, PRICE_CLOSE, 1);
+            double pSma20 = iMA(symbol, 0, 20, 0, MODE_SMMA, PRICE_CLOSE, 1);
+            double pSma65 = iMA(symbol, 0, 65, 0, MODE_SMMA, PRICE_CLOSE, 1);
+
+            // 0 nothing;  1 buy sma10-20; 2 buy sma20-65
+            // minus is sell
+
+            if (pSma10 > pSma20 && sma10 < sma20) result.Add(-1);
+            if (pSma10 < pSma20 && sma10 > sma20) result.Add(1);
+
+            if (pSma20 > pSma65 && sma20 < sma65) result.Add(-2);
+            if (pSma20 < pSma65 && sma20 > sma65) result.Add(2);
+            result.Add(sma10);
+            result.Add(sma20);
+            result.Add(sma65);
+
+            return result;
         }
+
+        double f(int x)
+        {
+            return 1 / Math.Exp((x * x) / 0.33) + 0.1 / Math.Exp(x) + 0.2;
+        }
+
+
+
 
         void ChangeTrailingStop()
         {
             
-            int trailingStop = 70;
+            int trailingStop = 200;
             for (int i = 0; i < OrdersTotal(); i++)
             {
                 if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) break;
@@ -258,15 +210,6 @@ namespace MetaQuotesSample
             }
         }
 
-
-
-
-
-
-
-
-
-
         //+------------------------------------------------------------------+
         //| Check for open order conditions                                  |
         //+------------------------------------------------------------------+
@@ -275,10 +218,13 @@ namespace MetaQuotesSample
             ChangeTrailingStop();
             if (Volume[0] > 1) return;
 
-            //---- sell conditions
-            int macd = ChechForMACD(symbol);
-            int sma = CheckForSMA(symbol);
-            if (macd == -1 && sma == -1 )
+            List<double> data = new List<double>();
+            data = CheckForSMA(symbol);
+            double decision = data[0];
+            
+
+            // Sell 
+            if (decision < 0)
             {
                 double lot = LotsOptimized();
                 Dictionary<String,double> tpResult = CalculateTakeProfit(symbol);
@@ -288,7 +234,7 @@ namespace MetaQuotesSample
 
             }
             //---- buy conditions
-            if (macd == 1 && sma == 1)
+            if (decision > 0)
             {
                 double lot = LotsOptimized();
                 //
